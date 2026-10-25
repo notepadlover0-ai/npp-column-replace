@@ -1,0 +1,36 @@
+Spalten-Ersetzen fuer Notepad++ - Installation
+==============================================
+
+Wichtig: Die Architektur muss zur installierten Notepad++-Version passen.
+  - x64-Ordner  -> 64-Bit-Notepad++
+  - x86-Ordner  -> 32-Bit-Notepad++
+
+Die Architektur steht in Notepad++ unter "? -> Info" (bzw. "Hilfe -> Info").
+
+Installation:
+1. Notepad++ vollstaendig schliessen.
+2. Den Ordner "ColumnReplace" in den plugins-Ordner von Notepad++ kopieren.
+   Ergebnis:
+     64-Bit: C:\Program Files\Notepad++\plugins\ColumnReplace\ColumnReplace.dll
+     32-Bit: C:\Program Files (x86)\Notepad++\plugins\ColumnReplace\ColumnReplace.dll
+   Portable: <Notepad++-Ordner>\plugins\ColumnReplace\ColumnReplace.dll
+3. Notepad++ starten.
+4. Menue "Plugins" -> "Spalten-Ersetzen" -> "Spalten-Ersetzen..." oeffnen.
+
+Bedienung:
+  - Zeilenanfang (Praefix): nur Zeilen mit diesem Anfang bearbeiten.
+    Fuer die ersten 3 Zeichen einfach diese 3 Zeichen eingeben.
+  - Zeilen von/bis: optional, z. B. 1 bis 3 fuer die ersten 3 Zeilen.
+  - Modus "Feste Zeichenpositionen": Spalten sind Zeichenpositionen.
+      Von Spalte / Bis Spalte: 1-basiert, inklusive;
+      Bis leer = bis zum Zeilenende.
+  - Modus "Trennzeichen-getrennte Felder": Spalten sind CSV-/TSV-Felder.
+      Trennzeichen z. B. ; oder \t (Tab eingeben als \t).
+      Von Spalte / Bis Spalte: 1-basierte Feldnummern;
+      Bis leer = nur die Startspalte.
+      Anfuehrungszeichen werden beruecksichtigt.
+  - Ersetzen durch: neuer Wert; leer = Spalten loeschen.
+  - Vorschau zeigt die ersten 20 Aenderungen.
+  - Ersetzen ist mit Strg+Z in einem Schritt rueckgaengig zu machen.
+
+Details stehen in README.md.

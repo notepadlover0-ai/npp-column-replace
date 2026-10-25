@@ -1,0 +1,21 @@
+#pragma once
+
+#define IDD_COLUMN_REPLACE 101
+
+#define IDC_PREFIX        1001
+#define IDC_CASE          1002
+#define IDC_ONLYSEL       1003
+#define IDC_FIRSTLINE     1004
+#define IDC_LASTLINE      1005
+#define IDC_STARTCOL      1006
+#define IDC_ENDCOL        1007
+#define IDC_REPLACEMENT   1008
+#define IDC_PREVIEW       1009
+#define IDC_REPLACE       1010
+#define IDC_PREVIEWLIST   1011
+#define IDC_STATUS        1012
+#define IDC_GROUP_COLUMNS 1013
+#define IDC_MODE_FIXED    1014
+#define IDC_MODE_DELIMITED 1015
+#define IDC_COLUMNHINT    1016
+#define IDC_DELIMITER     1017

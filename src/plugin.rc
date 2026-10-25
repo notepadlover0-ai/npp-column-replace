@@ -1,0 +1,74 @@
+#include <windows.h>
+#include <winres.h>
+#include "resource.h"
+
+#pragma code_page(65001)
+
+IDD_COLUMN_REPLACE DIALOGEX 0, 0, 400, 330
+STYLE DS_SETFONT | DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Spalten-Ersetzen"
+FONT 9, "Segoe UI", 400, 0, 0x1
+BEGIN
+    GROUPBOX        "Filter", IDC_STATIC, 7, 7, 386, 88
+    LTEXT           "Zeilenanfang (Präfix):", IDC_STATIC, 15, 21, 90, 10
+    EDITTEXT        IDC_PREFIX, 108, 19, 120, 14, ES_AUTOHSCROLL
+    CONTROL         "Groß-/Kleinschreibung beachten", IDC_CASE, "Button", BS_AUTOCHECKBOX | WS_TABSTOP, 236, 20, 150, 12
+    CONTROL         "Nur Zeilen in Auswahl", IDC_ONLYSEL, "Button", BS_AUTOCHECKBOX | WS_TABSTOP, 108, 37, 120, 12
+    LTEXT           "Zeilen von:", IDC_STATIC, 15, 55, 50, 10
+    EDITTEXT        IDC_FIRSTLINE, 70, 53, 42, 14, ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "bis:", IDC_STATIC, 118, 55, 18, 10
+    EDITTEXT        IDC_LASTLINE, 140, 53, 42, 14, ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "(leer = alle Zeilen)", IDC_STATIC, 190, 55, 100, 10
+    LTEXT           "Hinweis: Präfix z. B. ""ABC"" = erste 3 Zeichen der Zeile.", IDC_STATIC, 15, 73, 370, 10
+
+    GROUPBOX        "Spalten / Felder (1-basiert, inklusive)", IDC_GROUP_COLUMNS, 7, 99, 386, 78
+    CONTROL         "Feste Zeichenpositionen", IDC_MODE_FIXED, "Button", BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP, 15, 114, 140, 12
+    CONTROL         "Trennzeichen-getrennte Felder", IDC_MODE_DELIMITED, "Button", BS_AUTORADIOBUTTON | WS_TABSTOP, 165, 114, 180, 12
+    LTEXT           "Von Spalte:", IDC_STATIC, 15, 134, 55, 10
+    EDITTEXT        IDC_STARTCOL, 78, 132, 45, 14, ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "Bis Spalte:", IDC_STATIC, 135, 134, 55, 10
+    EDITTEXT        IDC_ENDCOL, 198, 132, 45, 14, ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "(leer = bis Zeilenende)", IDC_COLUMNHINT, 250, 134, 130, 10
+    LTEXT           "Trennzeichen:", IDC_STATIC, 15, 154, 60, 10
+    EDITTEXT        IDC_DELIMITER, 80, 152, 30, 14, ES_AUTOHSCROLL | ES_CENTER
+    LTEXT           "z. B. ; oder \\t (Tab)", IDC_STATIC, 118, 154, 200, 10
+
+    LTEXT           "Ersetzen durch:", IDC_STATIC, 15, 183, 80, 10
+    EDITTEXT        IDC_REPLACEMENT, 100, 181, 293, 14, ES_AUTOHSCROLL
+
+    DEFPUSHBUTTON   "Vorschau", IDC_PREVIEW, 7, 203, 80, 18
+    PUSHBUTTON      "Ersetzen", IDC_REPLACE, 92, 203, 80, 18
+    PUSHBUTTON      "Schließen", IDCANCEL, 177, 203, 80, 18
+
+    LTEXT           "Vorschau (max. 20 Änderungen):", IDC_STATIC, 7, 229, 200, 10
+    LISTBOX         IDC_PREVIEWLIST, 7, 241, 386, 62, LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_HSCROLL | LBS_DISABLENOSCROLL | WS_TABSTOP
+    LTEXT           "", IDC_STATUS, 7, 309, 386, 10
+END
+
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION     1,1,0,0
+PRODUCTVERSION  1,1,0,0
+FILEFLAGSMASK   0x3fL
+FILEFLAGS       0x0L
+FILEOS          VOS_NT_WINDOWS32
+FILETYPE        VFT_DLL
+FILESUBTYPE     0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040704b0"
+        BEGIN
+            VALUE "CompanyName", "AncientTree / Community"
+            VALUE "FileDescription", "Spalten-Ersetzen für Notepad++"
+            VALUE "FileVersion", "1.1.0.0"
+            VALUE "InternalName", "ColumnReplace"
+            VALUE "OriginalFilename", "ColumnReplace.dll"
+            VALUE "ProductName", "Spalten-Ersetzen"
+            VALUE "ProductVersion", "1.1.0.0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x407, 1200
+    END
+END
