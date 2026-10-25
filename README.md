@@ -1,5 +1,7 @@
 # Spalten-Ersetzen für Notepad++
 
+[![build](https://github.com/notepadlover0-ai/npp-column-replace/actions/workflows/build.yml/badge.svg)](https://github.com/notepadlover0-ai/npp-column-replace/actions/workflows/build.yml)
+
 Ein Notepad++-Plugin (32- und 64-Bit), das in ausgewählten Zeilen einen festen
 Spaltenbereich durch einen neuen Wert ersetzt.
 
