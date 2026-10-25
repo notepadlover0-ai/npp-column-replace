@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "ColumnReplace.h"
+#include "Localization.h"
 #include "PluginState.h"
 #include "resource.h"
 
@@ -23,6 +24,8 @@ struct Settings {
     std::wstring startColumn = L"1";
     std::wstring endColumn;
     std::wstring replacement;
+    columnreplace::Language language = columnreplace::Language::English;
+    bool languageInitialized = false;
 };
 
 Settings g_settings;
@@ -93,8 +96,59 @@ std::wstring trimForDisplay(const std::string& utf8,
     return text;
 }
 
-std::wstring toNumber(long long value) {
-    return std::to_wstring(value);
+std::wstring codePageDisplayName(int codePage) {
+    if (codePage == 0) {
+        codePage = static_cast<int>(GetACP());
+    }
+    switch (codePage) {
+    case 874:
+        return L"Windows-874";
+    case 932:
+        return L"Shift-JIS (932)";
+    case 936:
+        return L"GBK (936)";
+    case 949:
+        return L"Korean (949)";
+    case 950:
+        return L"Big5 (950)";
+    case 1250:
+    case 1251:
+    case 1252:
+    case 1253:
+    case 1254:
+    case 1255:
+    case 1256:
+    case 1257:
+    case 1258:
+        return L"Windows-" + std::to_wstring(codePage);
+    default:
+        return columnreplace::tr(columnreplace::Text::CodePagePrefix) +
+               std::to_wstring(codePage);
+    }
+}
+
+// Notepad++ stores ANSI documents internally as UTF-8 as well, so the plugin
+// always edits the UTF-8 view. This reports only which encoding is used when
+// the document is saved.
+std::wstring documentEncodingName(HWND scintilla) {
+    const int codePage = static_cast<int>(
+        SendMessageW(scintilla, SCI_GETCODEPAGE, 0, 0));
+    if (codePage == SC_CP_UTF8) {
+        return L"UTF-8";
+    }
+    return L"ANSI (" + codePageDisplayName(codePage) + L")";
+}
+
+bool isRepresentableInCodePage(const std::wstring& text, int codePage) {
+    const UINT cp = codePage == 0 ? GetACP() : static_cast<UINT>(codePage);
+    if (text.empty() || cp == CP_UTF8) {
+        return true;
+    }
+    BOOL usedDefault = FALSE;
+    const int length = WideCharToMultiByte(
+        cp, WC_NO_BEST_FIT_CHARS, text.c_str(),
+        static_cast<int>(text.size()), nullptr, 0, nullptr, &usedDefault);
+    return length > 0 && usedDefault == FALSE;
 }
 
 class WaitCursor {
@@ -266,13 +320,9 @@ void updateHorizontalExtent(HWND list) {
 }
 
 std::wstring formatPreview(const columnreplace::Preview& preview) {
-    std::wstring line = L"Zeile ";
-    line += toNumber(static_cast<long long>(preview.lineNumber));
-    line += L":  ";
-    line += trimForDisplay(preview.before);
-    line += L"   ->   ";
-    line += trimForDisplay(preview.after);
-    return line;
+    return columnreplace::formatPreviewLine(
+        static_cast<long long>(preview.lineNumber),
+        trimForDisplay(preview.before), trimForDisplay(preview.after));
 }
 
 struct InputValues {
@@ -296,7 +346,7 @@ bool parseOptionalNumber(HWND dialog, int controlId, const wchar_t* label,
     BOOL ok = FALSE;
     const UINT parsed = GetDlgItemInt(dialog, controlId, &ok, FALSE);
     if (!ok) {
-        error = std::wstring(L"Ungültiger Wert für \"") + label + L"\".";
+        error = columnreplace::formatInvalidNumber(label);
         return false;
     }
     present = true;
@@ -323,7 +373,8 @@ bool readInput(HWND dialog, HWND scintilla, InputValues& values,
         const std::wstring delimiterText =
             getWindowText(GetDlgItem(dialog, IDC_DELIMITER));
         if (delimiterText.empty()) {
-            error = L"Bitte ein Trennzeichen angeben (z. B. ; oder \\t für Tab).";
+            error = columnreplace::tr(
+                columnreplace::Text::ErrorDelimiterRequired);
             return false;
         }
         if (delimiterText == L"\\t") {
@@ -333,15 +384,15 @@ bool readInput(HWND dialog, HWND scintilla, InputValues& values,
             if (ch == L'\t') {
                 values.options.delimiter = '\t';
             } else if (ch < 0x20 || ch > 0x7E || ch == L'"') {
-                error = L"Das Trennzeichen muss ein einzelnes ASCII-Zeichen "
-                        L"sein (oder \\t für Tab).";
+                error = columnreplace::tr(
+                    columnreplace::Text::ErrorDelimiterAscii);
                 return false;
             } else {
                 values.options.delimiter = static_cast<char>(ch);
             }
         } else {
-            error = L"Das Trennzeichen muss ein einzelnes Zeichen sein "
-                    L"(oder \\t für Tab).";
+            error = columnreplace::tr(
+                columnreplace::Text::ErrorDelimiterSingle);
             return false;
         }
     }
@@ -349,13 +400,13 @@ bool readInput(HWND dialog, HWND scintilla, InputValues& values,
     const std::wstring startText =
         getWindowText(GetDlgItem(dialog, IDC_STARTCOL));
     if (startText.empty()) {
-        error = L"Bitte eine Startspalte angeben (1 oder größer).";
+        error = columnreplace::tr(columnreplace::Text::ErrorStartRequired);
         return false;
     }
     BOOL startOk = FALSE;
     const UINT start = GetDlgItemInt(dialog, IDC_STARTCOL, &startOk, FALSE);
     if (!startOk || start == 0) {
-        error = L"Die Startspalte muss eine Zahl ab 1 sein.";
+        error = columnreplace::tr(columnreplace::Text::ErrorStartNumber);
         return false;
     }
     values.options.startColumn = static_cast<long long>(start);
@@ -368,34 +419,38 @@ bool readInput(HWND dialog, HWND scintilla, InputValues& values,
         BOOL endOk = FALSE;
         const UINT end = GetDlgItemInt(dialog, IDC_ENDCOL, &endOk, FALSE);
         if (!endOk) {
-            error = L"Die Endspalte ist keine gültige Zahl.";
+            error = columnreplace::tr(columnreplace::Text::ErrorEndNumber);
             return false;
         }
         if (end != 0 && end < start) {
-            error = L"Die Endspalte darf nicht kleiner als die Startspalte sein.";
+            error = columnreplace::tr(columnreplace::Text::ErrorEndBeforeStart);
             return false;
         }
         values.options.endColumn = static_cast<long long>(end);
     }
 
-    if (!parseOptionalNumber(dialog, IDC_FIRSTLINE, L"Zeile von",
+    if (!parseOptionalNumber(dialog, IDC_FIRSTLINE,
+                             columnreplace::tr(
+                                 columnreplace::Text::LabelLineFromShort),
                              values.firstLine, values.hasFirstLine, error) ||
-        !parseOptionalNumber(dialog, IDC_LASTLINE, L"Zeile bis",
+        !parseOptionalNumber(dialog, IDC_LASTLINE,
+                             columnreplace::tr(
+                                 columnreplace::Text::LabelLineToShort),
                              values.lastLine, values.hasLastLine, error)) {
         return false;
     }
 
     if (values.hasFirstLine && values.firstLine == 0) {
-        error = L"\"Zeile von\" muss mindestens 1 sein.";
+        error = columnreplace::tr(columnreplace::Text::ErrorLineFromMin);
         return false;
     }
     if (values.hasLastLine && values.lastLine == 0) {
-        error = L"\"Zeile bis\" muss mindestens 1 sein.";
+        error = columnreplace::tr(columnreplace::Text::ErrorLineToMin);
         return false;
     }
     if (values.hasFirstLine && values.hasLastLine &&
         values.firstLine > values.lastLine) {
-        error = L"\"Zeile von\" darf nicht größer als \"Zeile bis\" sein.";
+        error = columnreplace::tr(columnreplace::Text::ErrorLineRange);
         return false;
     }
 
@@ -410,8 +465,8 @@ bool readInput(HWND dialog, HWND scintilla, InputValues& values,
         const long long selectionEnd = static_cast<long long>(
             SendMessageW(scintilla, SCI_GETSELECTIONEND, 0, 0));
         if (selectionStart == selectionEnd) {
-            error = L"\"Nur Zeilen in Auswahl\" ist aktiv, aber es ist kein "
-                    L"Text ausgewählt.";
+            error = columnreplace::tr(
+                columnreplace::Text::ErrorNoSelection);
             return false;
         }
         values.options.selectionStart = selectionStart;
@@ -427,8 +482,86 @@ void updateModeControls(HWND dialog) {
 
     EnableWindow(GetDlgItem(dialog, IDC_DELIMITER), delimited ? TRUE : FALSE);
     SetDlgItemTextW(dialog, IDC_COLUMNHINT,
-                    delimited ? L"(leer = nur Von-Spalte)"
-                              : L"(leer = bis Zeilenende)");
+                    columnreplace::tr(
+                        delimited ? columnreplace::Text::HintEndDelimited
+                                  : columnreplace::Text::HintEndFixed));
+}
+
+void applyLanguage(HWND dialog) {
+    SetWindowTextW(dialog,
+                   columnreplace::tr(columnreplace::Text::DialogCaption));
+
+    SetDlgItemTextW(dialog, IDC_GROUP_FILTER,
+                    columnreplace::tr(columnreplace::Text::GroupFilter));
+    SetDlgItemTextW(dialog, IDC_LABEL_PREFIX,
+                    columnreplace::tr(columnreplace::Text::LabelPrefix));
+    SetDlgItemTextW(dialog, IDC_CASE,
+                    columnreplace::tr(columnreplace::Text::CheckCase));
+    SetDlgItemTextW(dialog, IDC_ONLYSEL,
+                    columnreplace::tr(columnreplace::Text::CheckSelection));
+    SetDlgItemTextW(dialog, IDC_LABEL_LINEFROM,
+                    columnreplace::tr(columnreplace::Text::LabelLineFrom));
+    SetDlgItemTextW(dialog, IDC_LABEL_LINETO,
+                    columnreplace::tr(columnreplace::Text::LabelLineTo));
+    SetDlgItemTextW(dialog, IDC_HINT_ALLLINES,
+                    columnreplace::tr(columnreplace::Text::HintAllLines));
+    SetDlgItemTextW(dialog, IDC_HINT_PREFIX,
+                    columnreplace::tr(columnreplace::Text::HintPrefix));
+
+    SetDlgItemTextW(dialog, IDC_GROUP_COLUMNS,
+                    columnreplace::tr(columnreplace::Text::GroupColumns));
+    SetDlgItemTextW(dialog, IDC_MODE_FIXED,
+                    columnreplace::tr(columnreplace::Text::RadioFixed));
+    SetDlgItemTextW(dialog, IDC_MODE_DELIMITED,
+                    columnreplace::tr(columnreplace::Text::RadioDelimited));
+    SetDlgItemTextW(dialog, IDC_LABEL_STARTCOL,
+                    columnreplace::tr(columnreplace::Text::LabelStartColumn));
+    SetDlgItemTextW(dialog, IDC_LABEL_ENDCOL,
+                    columnreplace::tr(columnreplace::Text::LabelEndColumn));
+    SetDlgItemTextW(dialog, IDC_LABEL_DELIMITER,
+                    columnreplace::tr(columnreplace::Text::LabelDelimiter));
+    SetDlgItemTextW(dialog, IDC_HINT_DELIMITER,
+                    columnreplace::tr(columnreplace::Text::HintDelimiter));
+
+    SetDlgItemTextW(dialog, IDC_LABEL_REPLACEMENT,
+                    columnreplace::tr(columnreplace::Text::LabelReplacement));
+    SetDlgItemTextW(dialog, IDC_PREVIEW,
+                    columnreplace::tr(columnreplace::Text::ButtonPreview));
+    SetDlgItemTextW(dialog, IDC_REPLACE,
+                    columnreplace::tr(columnreplace::Text::ButtonReplace));
+    SetDlgItemTextW(dialog, IDCANCEL,
+                    columnreplace::tr(columnreplace::Text::ButtonClose));
+
+    SetDlgItemTextW(dialog, IDC_LABEL_PREVIEW,
+                    columnreplace::tr(columnreplace::Text::LabelPreview));
+    SetDlgItemTextW(dialog, IDC_LABEL_LANGUAGE,
+                    columnreplace::tr(columnreplace::Text::LabelLanguage));
+
+    updateModeControls(dialog);
+}
+
+void populateLanguageCombo(HWND dialog) {
+    HWND combo = GetDlgItem(dialog, IDC_LANGUAGE);
+    SendMessageW(combo, CB_RESETCONTENT, 0, 0);
+    SendMessageW(combo, CB_ADDSTRING, 0,
+                 reinterpret_cast<LPARAM>(
+                     columnreplace::tr(columnreplace::Text::LanguageGerman)));
+    SendMessageW(combo, CB_ADDSTRING, 0,
+                 reinterpret_cast<LPARAM>(
+                     columnreplace::tr(columnreplace::Text::LanguageEnglish)));
+    SendMessageW(combo, CB_SETCURSEL,
+                 columnreplace::currentLanguage() ==
+                         columnreplace::Language::German
+                     ? 0
+                     : 1,
+                 0);
+}
+
+std::wstring readyStatus(HWND scintilla) {
+    if (scintilla == nullptr) {
+        return columnreplace::tr(columnreplace::Text::StatusReady);
+    }
+    return columnreplace::formatReadyStatus(documentEncodingName(scintilla));
 }
 
 void saveSettings(HWND dialog) {
@@ -475,13 +608,16 @@ void runPreview(HWND dialog) {
     InputValues values;
     std::wstring error;
     if (!readInput(dialog, scintilla, values, error)) {
-        MessageBoxW(dialog, error.c_str(), L"Spalten-Ersetzen",
+        MessageBoxW(dialog, error.c_str(),
+                    columnreplace::tr(columnreplace::Text::PluginName),
                     MB_ICONWARNING | MB_OK);
         return;
     }
 
     clearPreview(dialog);
-    SetDlgItemTextW(dialog, IDC_STATUS, L"Vorschau wird berechnet ...");
+    SetDlgItemTextW(dialog, IDC_STATUS,
+                    columnreplace::tr(
+                        columnreplace::Text::StatusCalculating));
 
     WaitCursor cursor;
     const std::string document = readDocument(scintilla);
@@ -490,7 +626,8 @@ void runPreview(HWND dialog) {
 
     HWND list = GetDlgItem(dialog, IDC_PREVIEWLIST);
     if (analysis.previews.empty()) {
-        addPreviewLine(list, L"(keine Änderungen)");
+        addPreviewLine(list, columnreplace::tr(
+                                 columnreplace::Text::StatusNoChangesList));
     } else {
         for (const auto& preview : analysis.previews) {
             addPreviewLine(list, formatPreview(preview));
@@ -498,16 +635,8 @@ void runPreview(HWND dialog) {
     }
     updateHorizontalExtent(list);
 
-    std::wstring status = L"Treffer: ";
-    status += toNumber(static_cast<long long>(analysis.matchedLines));
-    status += L"   |   Änderungen: ";
-    status += toNumber(static_cast<long long>(analysis.changedLines));
-    if (analysis.changedLines > 20) {
-        status += L"   (20 von ";
-        status += toNumber(static_cast<long long>(analysis.changedLines));
-        status += L" angezeigt)";
-    }
-    setStatus(dialog, status);
+    setStatus(dialog, columnreplace::formatPreviewStatus(
+                          analysis.matchedLines, analysis.changedLines, 20));
 }
 
 void runReplace(HWND dialog) {
@@ -517,20 +646,41 @@ void runReplace(HWND dialog) {
     }
 
     if (SendMessageW(scintilla, SCI_GETREADONLY, 0, 0) != 0) {
-        MessageBoxW(dialog, L"Das aktuelle Dokument ist schreibgeschützt.",
-                    L"Spalten-Ersetzen", MB_ICONWARNING | MB_OK);
+        MessageBoxW(dialog,
+                    columnreplace::tr(columnreplace::Text::ErrorReadOnly),
+                    columnreplace::tr(columnreplace::Text::PluginName),
+                    MB_ICONWARNING | MB_OK);
         return;
     }
 
     InputValues values;
     std::wstring error;
     if (!readInput(dialog, scintilla, values, error)) {
-        MessageBoxW(dialog, error.c_str(), L"Spalten-Ersetzen",
+        MessageBoxW(dialog, error.c_str(),
+                    columnreplace::tr(columnreplace::Text::PluginName),
                     MB_ICONWARNING | MB_OK);
         return;
     }
 
     saveSettings(dialog);
+
+    // ANSI documents are edited as UTF-8 internally. Characters that do not
+    // exist in the document code page would be turned into '?' when saving,
+    // so ask before doing that.
+    const int codePage = static_cast<int>(
+        SendMessageW(scintilla, SCI_GETCODEPAGE, 0, 0));
+    if (codePage != SC_CP_UTF8 &&
+        !isRepresentableInCodePage(
+            getWindowText(GetDlgItem(dialog, IDC_REPLACEMENT)), codePage)) {
+        const std::wstring warning =
+            columnreplace::formatAnsiWarning(codePageDisplayName(codePage));
+        if (MessageBoxW(dialog, warning.c_str(),
+                        columnreplace::tr(
+                            columnreplace::Text::AnsiWarningTitle),
+                        MB_YESNO | MB_ICONWARNING | MB_DEFBUTTON2) != IDYES) {
+            return;
+        }
+    }
 
     WaitCursor cursor;
     const std::string document = readDocument(scintilla);
@@ -539,27 +689,32 @@ void runReplace(HWND dialog) {
 
     if (analysis.edits.empty()) {
         clearPreview(dialog);
-        setStatus(dialog, L"Keine Änderungen.");
+        setStatus(dialog,
+                  columnreplace::tr(columnreplace::Text::StatusNoChanges));
         return;
     }
 
     applyToScintilla(scintilla, analysis);
 
     clearPreview(dialog);
-    std::wstring status = L"Ersetzt: ";
-    status += toNumber(static_cast<long long>(analysis.changedLines));
-    status += L" Zeile(n)   |   Treffer: ";
-    status += toNumber(static_cast<long long>(analysis.matchedLines));
-    status += L"   |   Rückgängig mit Strg+Z";
-    setStatus(dialog, status);
+    setStatus(dialog, columnreplace::formatReplaceStatus(
+                          analysis.changedLines, analysis.matchedLines));
 }
 
 INT_PTR CALLBACK dialogProc(HWND dialog, UINT message, WPARAM wParam,
                             LPARAM lParam) {
     switch (message) {
     case WM_INITDIALOG:
+        if (!g_settings.languageInitialized) {
+            g_settings.language = columnreplace::detectLanguage();
+            g_settings.languageInitialized = true;
+        }
+        columnreplace::setLanguage(g_settings.language);
         loadSettings(dialog);
-        SetDlgItemTextW(dialog, IDC_STATUS, L"Bereit.");
+        populateLanguageCombo(dialog);
+        applyLanguage(dialog);
+        SetDlgItemTextW(dialog, IDC_STATUS,
+                        readyStatus(currentScintilla()).c_str());
         SetFocus(GetDlgItem(dialog, IDC_PREFIX));
         return FALSE;
 
@@ -576,6 +731,25 @@ INT_PTR CALLBACK dialogProc(HWND dialog, UINT message, WPARAM wParam,
         case IDC_MODE_FIXED:
         case IDC_MODE_DELIMITED:
             updateModeControls(dialog);
+            return TRUE;
+
+        case IDC_LANGUAGE:
+            if (HIWORD(wParam) == CBN_SELCHANGE) {
+                const int selection = static_cast<int>(SendMessageW(
+                    GetDlgItem(dialog, IDC_LANGUAGE), CB_GETCURSEL, 0, 0));
+                const columnreplace::Language language =
+                    selection == 0 ? columnreplace::Language::German
+                                   : columnreplace::Language::English;
+                if (language != columnreplace::currentLanguage()) {
+                    g_settings.language = language;
+                    columnreplace::setLanguage(language);
+                    applyLanguage(dialog);
+                    clearPreview(dialog);
+                    SetDlgItemTextW(
+                        dialog, IDC_STATUS,
+                        readyStatus(currentScintilla()).c_str());
+                }
+            }
             return TRUE;
 
         case IDCANCEL:

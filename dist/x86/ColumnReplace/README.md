@@ -1,5 +1,7 @@
 # Spalten-Ersetzen für Notepad++
 
+[![build](https://github.com/notepadlover0-ai/npp-column-replace/actions/workflows/build.yml/badge.svg)](https://github.com/notepadlover0-ai/npp-column-replace/actions/workflows/build.yml)
+
 Ein Notepad++-Plugin (32- und 64-Bit), das in ausgewählten Zeilen einen festen
 Spaltenbereich durch einen neuen Wert ersetzt.
 
@@ -31,6 +33,13 @@ Felder sind.
   Emojis zählen als ein Zeichen; ein Tab zählt als ein Zeichen.
 - CSV-Ersetzungen werden bei Bedarf automatisch in Anführungszeichen gesetzt
   und Anführungszeichen im Wert verdoppelt.
+- **Deutsche und englische Oberfläche:** Die Sprache wird automatisch aus der
+  Notepad++-Sprache übernommen und kann im Dialog unter **Sprache/Language**
+  umgeschaltet werden.
+- **ANSI- und UTF-8-Dateien:** Beide werden unterstützt. Notepad++ hält auch
+  ANSI-Dateien intern als UTF-8; gespeichert wird weiterhin im ursprünglichen
+  Format. Enthält der Ersatztext Zeichen, die in der ANSI-Codepage nicht
+  vorkommen, erscheint vor dem Ersetzen eine Warnung.
 
 ## Installation
 
@@ -43,7 +52,8 @@ Felder sind.
    - **Portable Version**
      `<Notepad++-Ordner>\plugins\ColumnReplace\ColumnReplace.dll`
 3. Notepad++ starten.
-4. Im Menü **Plugins → Spalten-Ersetzen → Spalten-Ersetzen...** öffnen.
+4. Im Menü **Plugins → Spalten-Ersetzen → Spalten-Ersetzen...** öffnen
+   (bei englischer Oberfläche **Plugins → Column Replace → Column Replace...**).
 
 Welche Architektur die installierte Notepad++-Version hat, steht unter
 **? → Info** (bzw. **Hilfe → Info**). Die DLL-Architektur muss dazu passen;
@@ -132,6 +142,33 @@ Ersetzen durch: 999;Sonderfall
 Ergebnis:       ABC;"999;Sonderfall";Hans
 ```
 
+## Sprache und Kodierung
+
+### Deutsch und Englisch
+
+- Die Oberfläche startet in der Sprache der Notepad++-Oberfläche. Ist keine
+  Notepad++-Sprachdatei erkannt worden, entscheidet die Windows-Anzeigesprache.
+- Im Dialog lässt sie sich jederzeit über **Sprache/Language** umschalten; alle
+  Texte, Meldungen und Hinweise wechseln sofort.
+- Die Auswahl gilt für die laufende Notepad++-Sitzung. Der Eintrag im
+  Plugins-Menü übernimmt die Sprache beim Start von Notepad++.
+
+### ANSI- und UTF-8-Dateien
+
+- Das Plugin funktioniert mit **ANSI-, UTF-8- und UTF-8-BOM-Dateien**.
+  Notepad++ führt ANSI-Dateien intern als UTF-8; das Plugin bearbeitet diesen
+  UTF-8-Puffer, und Notepad++ speichert anschließend wieder in der
+  ursprünglichen Kodierung.
+- Spalten zählen **Zeichen**, nicht Bytes. Bei einbytebasierten ANSI-Codepages
+  (z. B. Windows-1252) entspricht eine Spalte genau einem Byte, bei
+  Mehrbyte-Codepages (z. B. Shift-JIS) einem Zeichen.
+- Die Statuszeile zeigt die erkannte Kodierung an, z. B.
+  `Bereit. Datei-Kodierung: ANSI (Windows-1252).`
+- Enthält der Ersatztext Zeichen, die in der ANSI-Codepage nicht darstellbar
+  sind (etwa Emojis oder nicht unterstützte Buchstaben), warnt das Plugin vor
+  dem Ersetzen. Beim Speichern würde Notepad++ diese Zeichen sonst durch `?`
+  ersetzen.
+
 ## Verhalten im Detail
 
 ### Feste Zeichenpositionen
@@ -173,8 +210,8 @@ Ergebnis:       ABC;"999;Sonderfall";Hans
 
 In diesem Projekt liegen bereits gebaute Pakete:
 
-- `dist/ColumnReplace-1.1.0-x64.zip` – 64-Bit
-- `dist/ColumnReplace-1.1.0-x86.zip` – 32-Bit
+- `dist/ColumnReplace-1.2.0-x64.zip` – 64-Bit
+- `dist/ColumnReplace-1.2.0-x86.zip` – 32-Bit
 
 Jedes ZIP enthält den Ordner `ColumnReplace` mit der DLL, dieser wird direkt
 nach `<Notepad++>\plugins\` kopiert.

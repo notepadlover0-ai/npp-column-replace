@@ -9,6 +9,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 add_library(ColumnReplace SHARED
     src/ColumnReplace.cpp
     src/ColumnReplaceDialog.cpp
+    src/Localization.cpp
     src/dllmain.cpp
     src/plugin.rc
     src/ColumnReplace.def

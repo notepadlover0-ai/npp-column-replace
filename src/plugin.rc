@@ -6,48 +6,50 @@
 
 IDD_COLUMN_REPLACE DIALOGEX 0, 0, 400, 330
 STYLE DS_SETFONT | DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
-CAPTION "Spalten-Ersetzen"
+CAPTION "Column Replace"
 FONT 9, "Segoe UI", 400, 0, 0x1
 BEGIN
-    GROUPBOX        "Filter", IDC_STATIC, 7, 7, 386, 88
-    LTEXT           "Zeilenanfang (Präfix):", IDC_STATIC, 15, 21, 90, 10
+    GROUPBOX        "Filter", IDC_GROUP_FILTER, 7, 7, 386, 88
+    LTEXT           "Line prefix:", IDC_LABEL_PREFIX, 15, 21, 90, 10
     EDITTEXT        IDC_PREFIX, 108, 19, 120, 14, ES_AUTOHSCROLL
-    CONTROL         "Groß-/Kleinschreibung beachten", IDC_CASE, "Button", BS_AUTOCHECKBOX | WS_TABSTOP, 236, 20, 150, 12
-    CONTROL         "Nur Zeilen in Auswahl", IDC_ONLYSEL, "Button", BS_AUTOCHECKBOX | WS_TABSTOP, 108, 37, 120, 12
-    LTEXT           "Zeilen von:", IDC_STATIC, 15, 55, 50, 10
+    CONTROL         "Match case", IDC_CASE, "Button", BS_AUTOCHECKBOX | WS_TABSTOP, 236, 20, 150, 12
+    CONTROL         "Only lines in selection", IDC_ONLYSEL, "Button", BS_AUTOCHECKBOX | WS_TABSTOP, 108, 37, 120, 12
+    LTEXT           "Lines from:", IDC_LABEL_LINEFROM, 15, 55, 52, 10
     EDITTEXT        IDC_FIRSTLINE, 70, 53, 42, 14, ES_AUTOHSCROLL | ES_NUMBER
-    LTEXT           "bis:", IDC_STATIC, 118, 55, 18, 10
+    LTEXT           "to:", IDC_LABEL_LINETO, 118, 55, 18, 10
     EDITTEXT        IDC_LASTLINE, 140, 53, 42, 14, ES_AUTOHSCROLL | ES_NUMBER
-    LTEXT           "(leer = alle Zeilen)", IDC_STATIC, 190, 55, 100, 10
-    LTEXT           "Hinweis: Präfix z. B. ""ABC"" = erste 3 Zeichen der Zeile.", IDC_STATIC, 15, 73, 370, 10
+    LTEXT           "(empty = all lines)", IDC_HINT_ALLLINES, 190, 55, 100, 10
+    LTEXT           "Hint: prefix e.g. ""ABC"" = first 3 characters of a line.", IDC_HINT_PREFIX, 15, 73, 370, 10
 
-    GROUPBOX        "Spalten / Felder (1-basiert, inklusive)", IDC_GROUP_COLUMNS, 7, 99, 386, 78
-    CONTROL         "Feste Zeichenpositionen", IDC_MODE_FIXED, "Button", BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP, 15, 114, 140, 12
-    CONTROL         "Trennzeichen-getrennte Felder", IDC_MODE_DELIMITED, "Button", BS_AUTORADIOBUTTON | WS_TABSTOP, 165, 114, 180, 12
-    LTEXT           "Von Spalte:", IDC_STATIC, 15, 134, 55, 10
+    GROUPBOX        "Columns / fields (1-based, inclusive)", IDC_GROUP_COLUMNS, 7, 99, 386, 78
+    CONTROL         "Fixed character positions", IDC_MODE_FIXED, "Button", BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP, 15, 114, 140, 12
+    CONTROL         "Delimiter-separated fields", IDC_MODE_DELIMITED, "Button", BS_AUTORADIOBUTTON | WS_TABSTOP, 165, 114, 180, 12
+    LTEXT           "From column:", IDC_LABEL_STARTCOL, 15, 134, 58, 10
     EDITTEXT        IDC_STARTCOL, 78, 132, 45, 14, ES_AUTOHSCROLL | ES_NUMBER
-    LTEXT           "Bis Spalte:", IDC_STATIC, 135, 134, 55, 10
+    LTEXT           "To column:", IDC_LABEL_ENDCOL, 135, 134, 55, 10
     EDITTEXT        IDC_ENDCOL, 198, 132, 45, 14, ES_AUTOHSCROLL | ES_NUMBER
-    LTEXT           "(leer = bis Zeilenende)", IDC_COLUMNHINT, 250, 134, 130, 10
-    LTEXT           "Trennzeichen:", IDC_STATIC, 15, 154, 60, 10
+    LTEXT           "(empty = to end of line)", IDC_COLUMNHINT, 250, 134, 130, 10
+    LTEXT           "Delimiter:", IDC_LABEL_DELIMITER, 15, 154, 60, 10
     EDITTEXT        IDC_DELIMITER, 80, 152, 30, 14, ES_AUTOHSCROLL | ES_CENTER
-    LTEXT           "z. B. ; oder \\t (Tab)", IDC_STATIC, 118, 154, 200, 10
+    LTEXT           "e.g. ; or \\t (tab)", IDC_HINT_DELIMITER, 118, 154, 200, 10
 
-    LTEXT           "Ersetzen durch:", IDC_STATIC, 15, 183, 80, 10
+    LTEXT           "Replace with:", IDC_LABEL_REPLACEMENT, 15, 183, 80, 10
     EDITTEXT        IDC_REPLACEMENT, 100, 181, 293, 14, ES_AUTOHSCROLL
 
-    DEFPUSHBUTTON   "Vorschau", IDC_PREVIEW, 7, 203, 80, 18
-    PUSHBUTTON      "Ersetzen", IDC_REPLACE, 92, 203, 80, 18
-    PUSHBUTTON      "Schließen", IDCANCEL, 177, 203, 80, 18
+    DEFPUSHBUTTON   "Preview", IDC_PREVIEW, 7, 203, 80, 18
+    PUSHBUTTON      "Replace", IDC_REPLACE, 92, 203, 80, 18
+    PUSHBUTTON      "Close", IDCANCEL, 177, 203, 80, 18
 
-    LTEXT           "Vorschau (max. 20 Änderungen):", IDC_STATIC, 7, 229, 200, 10
+    LTEXT           "Preview (max. 20 changes):", IDC_LABEL_PREVIEW, 7, 229, 250, 10
+    LTEXT           "Language:", IDC_LABEL_LANGUAGE, 266, 229, 48, 10
+    COMBOBOX        IDC_LANGUAGE, 318, 227, 75, 80, CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     LISTBOX         IDC_PREVIEWLIST, 7, 241, 386, 62, LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_HSCROLL | LBS_DISABLENOSCROLL | WS_TABSTOP
     LTEXT           "", IDC_STATUS, 7, 309, 386, 10
 END
 
 VS_VERSION_INFO VERSIONINFO
-FILEVERSION     1,1,0,0
-PRODUCTVERSION  1,1,0,0
+FILEVERSION     1,2,0,0
+PRODUCTVERSION  1,2,0,0
 FILEFLAGSMASK   0x3fL
 FILEFLAGS       0x0L
 FILEOS          VOS_NT_WINDOWS32
@@ -60,11 +62,11 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "AncientTree / Community"
             VALUE "FileDescription", "Spalten-Ersetzen für Notepad++"
-            VALUE "FileVersion", "1.1.0.0"
+            VALUE "FileVersion", "1.2.0.0"
             VALUE "InternalName", "ColumnReplace"
             VALUE "OriginalFilename", "ColumnReplace.dll"
             VALUE "ProductName", "Spalten-Ersetzen"
-            VALUE "ProductVersion", "1.1.0.0"
+            VALUE "ProductVersion", "1.2.0.0"
         END
     END
     BLOCK "VarFileInfo"

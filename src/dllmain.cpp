@@ -1,6 +1,7 @@
 #include <windows.h>
 
 #include "ColumnReplaceDialog.h"
+#include "Localization.h"
 #include "PluginInterface.h"
 #include "PluginState.h"
 
@@ -8,9 +9,6 @@ NppData g_nppData;
 HINSTANCE g_hInstance = nullptr;
 
 namespace {
-
-const wchar_t* const kPluginName = L"Spalten-Ersetzen";
-const wchar_t* const kMenuItem = L"Spalten-Ersetzen...";
 
 FuncItem g_funcItems[1];
 bool g_funcItemsInitialized = false;
@@ -21,7 +19,9 @@ void initializeFuncItems() {
     if (g_funcItemsInitialized) {
         return;
     }
-    lstrcpynW(g_funcItems[0]._itemName, kMenuItem, menuItemSize);
+    columnreplace::setLanguage(columnreplace::detectLanguage());
+    lstrcpynW(g_funcItems[0]._itemName,
+              columnreplace::tr(columnreplace::Text::MenuItem), menuItemSize);
     g_funcItems[0]._pFunc = commandShowDialog;
     g_funcItems[0]._cmdID = 0;
     g_funcItems[0]._init2Check = false;
@@ -59,7 +59,8 @@ extern "C" __declspec(dllexport) void setInfo(NppData data) {
 }
 
 extern "C" __declspec(dllexport) const wchar_t* getName() {
-    return kPluginName;
+    columnreplace::setLanguage(columnreplace::detectLanguage());
+    return columnreplace::tr(columnreplace::Text::PluginName);
 }
 
 extern "C" __declspec(dllexport) FuncItem* getFuncsArray(int* count) {

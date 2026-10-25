@@ -16,8 +16,15 @@ Installation:
    Portable: <Notepad++-Ordner>\plugins\ColumnReplace\ColumnReplace.dll
 3. Notepad++ starten.
 4. Menue "Plugins" -> "Spalten-Ersetzen" -> "Spalten-Ersetzen..." oeffnen.
+   (Englische Oberflaeche: "Plugins" -> "Column Replace" -> "Column Replace...")
 
 Bedienung:
+  - Sprache: Deutsch oder Englisch, automatisch aus Notepad++ uebernommen;
+    im Dialog unter "Sprache/Language" umschaltbar.
+  - ANSI- und UTF-8-Dateien werden unterstuetzt. Notepad++ speichert die
+    Datei weiterhin in ihrer urspruenglichen Kodierung. Bei ANSI warnt das
+    Plugin, wenn der Ersatztext Zeichen enthaelt, die dort nicht darstellbar
+    sind.
   - Zeilenanfang (Praefix): nur Zeilen mit diesem Anfang bearbeiten.
     Fuer die ersten 3 Zeichen einfach diese 3 Zeichen eingeben.
   - Zeilen von/bis: optional, z. B. 1 bis 3 fuer die ersten 3 Zeilen.
