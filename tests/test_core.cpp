@@ -48,6 +48,25 @@ int main() {
                  "ABCXY456\nABD123456\nABCXY\nABC\n");
     }
 
+    // Shorter and longer replacements touch only the configured columns; the
+    // text after the range is preserved verbatim.
+    {
+        Options options;
+        options.startColumn = 4;
+        options.endColumn = 6;
+        options.replacement = "X";
+
+        const std::string text = "ABC001Hans\n";
+        CHECK_EQ(applyEdits(text, analyze(text, options)), "ABCXHans\n");
+
+        options.replacement = "LONGER";
+        CHECK_EQ(applyEdits(text, analyze(text, options)),
+                 "ABCLONGERHans\n");
+
+        options.replacement = "";
+        CHECK_EQ(applyEdits(text, analyze(text, options)), "ABCHans\n");
+    }
+
     // Empty prefix = all lines; one character replaced.
     {
         Options options;

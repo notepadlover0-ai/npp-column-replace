@@ -37,6 +37,8 @@ Bedienung:
       Bis leer = nur die Startspalte.
       Anfuehrungszeichen werden beruecksichtigt.
   - Ersetzen durch: neuer Wert; leer = Spalten loeschen.
+  - Wiederholtes Ersetzen mit unveraenderten Einstellungen ist unschaedlich;
+    das Plugin meldet dann "bereits ersetzt" und aendert nichts.
   - Vorschau zeigt die ersten 20 Aenderungen.
   - Ersetzen ist mit Strg+Z in einem Schritt rueckgaengig zu machen.
 

@@ -3,6 +3,7 @@
 #include <windows.h>
 
 #include <algorithm>
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -29,6 +30,49 @@ struct Settings {
 };
 
 Settings g_settings;
+
+// Remembers the last successful replacement so that pressing "Replace" again
+// with unchanged settings and an unchanged document does not run the analysis
+// a second time. Without this guard a shorter replacement would shift the
+// following text into the configured columns and the next run would delete
+// characters behind the intended column range.
+struct AppliedState {
+    bool valid = false;
+    std::uintptr_t bufferId = 0;
+    columnreplace::Options options;
+    std::uint64_t documentHash = 0;
+};
+
+AppliedState g_lastApplication;
+
+std::uint64_t hashDocument(const std::string& text) {
+    std::uint64_t hash = 1469598103934665603ULL; // FNV-1a 64 bit
+    for (const unsigned char byte : text) {
+        hash ^= byte;
+        hash *= 1099511628211ULL;
+    }
+    return hash;
+}
+
+bool sameOptions(const columnreplace::Options& a,
+                 const columnreplace::Options& b) {
+    return a.prefix == b.prefix && a.caseSensitive == b.caseSensitive &&
+           a.mode == b.mode && a.delimiter == b.delimiter &&
+           a.startColumn == b.startColumn && a.endColumn == b.endColumn &&
+           a.replacement == b.replacement &&
+           a.onlySelection == b.onlySelection &&
+           a.selectionStart == b.selectionStart &&
+           a.selectionEnd == b.selectionEnd && a.firstLine == b.firstLine &&
+           a.lastLine == b.lastLine;
+}
+
+std::uintptr_t currentBufferId() {
+    if (g_nppData._nppHandle == nullptr) {
+        return 0;
+    }
+    return static_cast<std::uintptr_t>(
+        SendMessageW(g_nppData._nppHandle, NPPM_GETCURRENTBUFFERID, 0, 0));
+}
 
 std::wstring getWindowText(HWND hwnd) {
     const int length = GetWindowTextLengthW(hwnd);
@@ -664,6 +708,20 @@ void runReplace(HWND dialog) {
 
     saveSettings(dialog);
 
+    const std::string document = readDocument(scintilla);
+    const std::uintptr_t bufferId = currentBufferId();
+
+    // Pressing "Replace" again with unchanged settings must not shift-delete
+    // text behind the column range.
+    if (g_lastApplication.valid && g_lastApplication.bufferId == bufferId &&
+        sameOptions(g_lastApplication.options, values.options) &&
+        g_lastApplication.documentHash == hashDocument(document)) {
+        clearPreview(dialog);
+        setStatus(dialog, columnreplace::tr(
+                              columnreplace::Text::StatusAlreadyApplied));
+        return;
+    }
+
     // ANSI documents are edited as UTF-8 internally. Characters that do not
     // exist in the document code page would be turned into '?' when saving,
     // so ask before doing that.
@@ -683,7 +741,6 @@ void runReplace(HWND dialog) {
     }
 
     WaitCursor cursor;
-    const std::string document = readDocument(scintilla);
     const columnreplace::Analysis analysis =
         columnreplace::analyze(document, values.options, 0);
 
@@ -695,6 +752,12 @@ void runReplace(HWND dialog) {
     }
 
     applyToScintilla(scintilla, analysis);
+
+    g_lastApplication.valid = true;
+    g_lastApplication.bufferId = bufferId;
+    g_lastApplication.options = values.options;
+    g_lastApplication.documentHash =
+        hashDocument(columnreplace::applyEdits(document, analysis));
 
     clearPreview(dialog);
     setStatus(dialog, columnreplace::formatReplaceStatus(

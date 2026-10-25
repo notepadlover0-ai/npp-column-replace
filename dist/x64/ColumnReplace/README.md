@@ -171,6 +171,12 @@ Ergebnis:       ABC;"999;Sonderfall";Hans
 
 ## Verhalten im Detail
 
+**Wiederholtes Ersetzen:** Wurde das Dokument seit dem letzten Ersetzen nicht
+verändert und sind die Einstellungen identisch, bewirkt ein weiterer Klick auf
+**Ersetzen** nichts (Status: „Keine Änderungen – bereits ersetzt.“). So kann ein
+kürzerer Ersatztext bei erneutem Ausführen keine Zeichen hinter dem
+Spaltenbereich löschen.
+
 ### Feste Zeichenpositionen
 
 - Spalten sind **1-basiert und inklusive**: „Von 4 bis 6“ ersetzt genau drei
@@ -210,8 +216,8 @@ Ergebnis:       ABC;"999;Sonderfall";Hans
 
 In diesem Projekt liegen bereits gebaute Pakete:
 
-- `dist/ColumnReplace-1.2.0-x64.zip` – 64-Bit
-- `dist/ColumnReplace-1.2.0-x86.zip` – 32-Bit
+- `dist/ColumnReplace-1.2.1-x64.zip` – 64-Bit
+- `dist/ColumnReplace-1.2.1-x86.zip` – 32-Bit
 
 Jedes ZIP enthält den Ordner `ColumnReplace` mit der DLL, dieser wird direkt
 nach `<Notepad++>\plugins\` kopiert.

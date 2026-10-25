@@ -40,6 +40,7 @@ enum class Text {
     StatusCalculating,
     StatusNoChangesList,
     StatusNoChanges,
+    StatusAlreadyApplied,
     ErrorReadOnly,
     ErrorDelimiterRequired,
     ErrorDelimiterAscii,
