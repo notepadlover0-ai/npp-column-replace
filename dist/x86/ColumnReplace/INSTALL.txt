@@ -31,7 +31,8 @@ Bedienung:
     3 Dateizeilen. Ohne Haken werden alle Zeilen bearbeitet.
   - Modus "Feste Zeichenpositionen": Spalten sind Zeichenpositionen.
       Von Spalte / Bis Spalte: 1-basiert, inklusive;
-      Bis leer = bis zum Zeilenende.
+      Bis leer = bis zum Zeilenende. Ist eine Zeile kuerzer als die
+      Startspalte, wird sie mit Leerzeichen bis zur Startspalte aufgefuellt.
   - Modus "Trennzeichen-getrennte Felder": Spalten sind CSV-/TSV-Felder.
       Trennzeichen z. B. ; oder \t (Tab eingeben als \t).
       Von Spalte / Bis Spalte: 1-basierte Feldnummern;

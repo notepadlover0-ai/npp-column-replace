@@ -67,6 +67,47 @@ int main() {
         CHECK_EQ(applyEdits(text, analyze(text, options)), "ABCHans\n");
     }
 
+    // "From column N to end of line" pads shorter lines with spaces so the
+    // replacement starts at column N on every matching line.
+    {
+        Options options;
+        options.startColumn = 5;
+        options.replacement = "XY";
+
+        const std::string text = "abcdef\nab\nabcd\n\n";
+        const Analysis analysis = analyze(text, options);
+        CHECK_EQ(std::to_string(analysis.matchedLines), "4");
+        CHECK_EQ(std::to_string(analysis.changedLines), "3");
+        CHECK_EQ(applyEdits(text, analysis), "abcdXY\nab  XY\nabcdXY\n\n");
+    }
+
+    // A line that only reaches the character before the start column is
+    // extended without any padding.
+    {
+        Options options;
+        options.startColumn = 5;
+        options.replacement = "XY";
+
+        const std::string text = "abcd\n";
+        CHECK_EQ(applyEdits(text, analyze(text, options)), "abcdXY\n");
+    }
+
+    // Deleting from a column that a short line does not reach changes
+    // nothing; an explicit end column also keeps short lines untouched.
+    {
+        Options options;
+        options.startColumn = 5;
+        options.replacement = "";
+
+        const std::string text = "ab\n";
+        CHECK_EQ(applyEdits(text, analyze(text, options)), "ab\n");
+
+        options.replacement = "XY";
+        options.endColumn = 6;
+        const std::string narrower = "ab\n";
+        CHECK_EQ(applyEdits(narrower, analyze(narrower, options)), "ab\n");
+    }
+
     // Empty prefix = all lines; one character replaced.
     {
         Options options;

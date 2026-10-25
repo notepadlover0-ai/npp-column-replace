@@ -25,7 +25,9 @@ Felder sind.
   bearbeitet; die Felder sind dann ausgegraut.
 - **Optional nur Zeilen in der aktuellen Auswahl.**
 - **Spaltenbereich:** 1-basiert und inklusive.
-  - Feste Positionen: Endspalte leer = bis zum Zeilenende.
+  - Feste Positionen: Endspalte leer = bis zum Zeilenende; ist eine Zeile
+    kürzer als die Startspalte, wird sie mit Leerzeichen bis zur Startspalte
+    aufgefüllt.
   - CSV: Endspalte leer = nur die Startspalte.
 - **Vorschau** der ersten 20 Änderungen vor dem Ersetzen.
 - **Ein einziger Undo-Schritt:** Nach dem Ersetzen mit `Strg+Z` komplett
@@ -188,7 +190,12 @@ Datei; eine vierte Zeile bleibt unverändert, auch wenn ihr Präfix passt.
 
 - Spalten sind **1-basiert und inklusive**: „Von 4 bis 6“ ersetzt genau drei
   Zeichen.
-- Ist die Zeile kürzer als die Startspalte, bleibt sie unverändert.
+- Ist die Endspalte leer („bis zum Zeilenende“) und die Zeile kürzer als die
+  Startspalte, wird die Zeile mit Leerzeichen bis zur Startspalte aufgefüllt.
+  Der Ersatztext beginnt dadurch in jeder passenden Zeile exakt in derselben
+  Spalte. Leere Zeilen bleiben unverändert.
+- Bei angegebener Endspalte bleibt eine Zeile, die die Startspalte nicht
+  erreicht, unverändert – dort existieren die Spalten nicht.
 - Liegt die Endspalte hinter dem Zeilenende, wird bis zum Zeilenende ersetzt.
 - Das Präfix wird **literal** verglichen (kein regulärer Ausdruck).
 - „Nur Zeilen in Auswahl“ filtert ganze Zeilen; ersetzt werden weiterhin die
@@ -223,8 +230,8 @@ Datei; eine vierte Zeile bleibt unverändert, auch wenn ihr Präfix passt.
 
 In diesem Projekt liegen bereits gebaute Pakete:
 
-- `dist/ColumnReplace-1.3.0-x64.zip` – 64-Bit
-- `dist/ColumnReplace-1.3.0-x86.zip` – 32-Bit
+- `dist/ColumnReplace-1.3.1-x64.zip` – 64-Bit
+- `dist/ColumnReplace-1.3.1-x86.zip` – 32-Bit
 
 Jedes ZIP enthält den Ordner `ColumnReplace` mit der DLL, dieser wird direkt
 nach `<Notepad++>\plugins\` kopiert.

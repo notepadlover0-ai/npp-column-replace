@@ -39,7 +39,7 @@ git config user.name "Ihr Name"
 git config user.email "ihre-neue-adresse@gmail.com"
 
 git add -A
-git commit -m "Initial commit: Notepad++ Spalten-Ersetzen 1.3.0"
+git commit -m "Initial commit: Notepad++ Spalten-Ersetzen 1.3.1"
 
 git remote add origin https://github.com/<BENUTZERNAME>/npp-column-replace.git
 git branch -M main
@@ -66,15 +66,15 @@ mit `repo`-Rechte erzeugen und als Passwort verwenden.
 ## 6. Release mit fertigen DLLs (optional)
 
 ```bash
-git tag v1.3.0
-git push origin v1.3.0
+git tag v1.3.1
+git push origin v1.3.1
 ```
 
-Auf GitHub unter **Releases → Draft a new release** den Tag `v1.3.0` wählen und
+Auf GitHub unter **Releases → Draft a new release** den Tag `v1.3.1` wählen und
 die beiden ZIPs aus `dist/` als Anhänge hochladen:
 
-- `dist/ColumnReplace-1.3.0-x64.zip`
-- `dist/ColumnReplace-1.3.0-x86.zip`
+- `dist/ColumnReplace-1.3.1-x64.zip`
+- `dist/ColumnReplace-1.3.1-x86.zip`
 
 ## 7. Automatischer Build
 

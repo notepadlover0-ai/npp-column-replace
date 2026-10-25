@@ -180,14 +180,37 @@ std::string encodeDelimitedValue(const std::string& value, char delimiter) {
 bool replaceFixedWidth(const std::string& content,
                        const std::vector<unsigned int>& cps,
                        const std::vector<std::size_t>& offsets,
-                       const Options& options, std::string& updated) {
-    if (options.startColumn < 1 ||
-        static_cast<std::size_t>(options.startColumn - 1) >= cps.size()) {
+                       const Options& options, std::size_t& startByte,
+                       std::size_t& endByte, std::string& replacement,
+                       std::string& updated) {
+    if (options.startColumn < 1) {
         return false;
     }
 
     const std::size_t startIndex =
         static_cast<std::size_t>(options.startColumn - 1);
+
+    // "From column N to the end of the line" also works for lines that are
+    // shorter than column N. Such lines are padded with spaces so the
+    // replacement starts at exactly the configured column. Empty lines stay
+    // untouched, and an explicit end column still only edits text that
+    // actually exists in that range.
+    if (options.endColumn == 0 && startIndex >= cps.size()) {
+        if (options.replacement.empty() || content.empty()) {
+            return false;
+        }
+        replacement.assign(startIndex - cps.size(), ' ');
+        replacement += options.replacement;
+        startByte = content.size();
+        endByte = content.size();
+        updated = content;
+        updated += replacement;
+        return true;
+    }
+
+    if (startIndex >= cps.size()) {
+        return false;
+    }
 
     std::size_t endIndex = cps.size();
     if (options.endColumn > 0) {
@@ -200,11 +223,15 @@ bool replaceFixedWidth(const std::string& content,
         return false;
     }
 
+    startByte = offsets[startIndex];
+    endByte = offsets[endIndex];
+    replacement = options.replacement;
+
     updated.clear();
-    updated.reserve(content.size() + options.replacement.size());
-    updated.append(content, 0, offsets[startIndex]);
-    updated += options.replacement;
-    updated.append(content, offsets[endIndex], std::string::npos);
+    updated.reserve(content.size() + replacement.size());
+    updated.append(content, 0, startByte);
+    updated += replacement;
+    updated.append(content, endByte, std::string::npos);
     return updated != content;
 }
 
@@ -319,20 +346,11 @@ Analysis analyze(const std::string& text, const Options& options,
                     }
                 } else {
                     changed = replaceFixedWidth(content, lineCps, lineOffsets,
-                                                options, updated);
+                                                options, editStart, editEnd,
+                                                replacement, updated);
                     if (changed) {
-                        editStart = pos + lineOffsets[static_cast<std::size_t>(
-                                                 options.startColumn - 1)];
-                        std::size_t endIndex = lineCps.size();
-                        if (options.endColumn > 0) {
-                            endIndex =
-                                static_cast<std::size_t>(options.endColumn);
-                            if (endIndex > lineCps.size()) {
-                                endIndex = lineCps.size();
-                            }
-                        }
-                        editEnd = pos + lineOffsets[endIndex];
-                        replacement = options.replacement;
+                        editStart += pos;
+                        editEnd += pos;
                     }
                 }
 

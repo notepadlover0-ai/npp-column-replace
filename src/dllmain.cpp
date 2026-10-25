@@ -35,15 +35,19 @@ HWND currentScintilla() {
     if (g_nppData._nppHandle == nullptr) {
         return nullptr;
     }
-    const int which = static_cast<int>(
-        SendMessageW(g_nppData._nppHandle, NPPM_GETCURRENTSCINTILLA, 0, 0));
-    if (which == 0) {
-        return g_nppData._scintillaMainHandle;
-    }
+    // NPPM_GETCURRENTSCINTILLA writes 0 (main view) or 1 (sub view) into the
+    // int passed as lParam and returns TRUE, so the return value must not be
+    // used as the view index.
+    int which = 0;
+    SendMessageW(g_nppData._nppHandle, NPPM_GETCURRENTSCINTILLA, 0,
+                 reinterpret_cast<LPARAM>(&which));
     if (which == 1) {
         return g_nppData._scintillaSecondHandle;
     }
-    return g_nppData._scintillaMainHandle;
+    if (which == 0) {
+        return g_nppData._scintillaMainHandle;
+    }
+    return nullptr;
 }
 
 BOOL APIENTRY DllMain(HMODULE module, DWORD reason, LPVOID) {
