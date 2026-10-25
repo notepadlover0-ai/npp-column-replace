@@ -20,7 +20,9 @@ Felder sind.
 - **Filter nach Zeilenanfang (Präfix):** Es werden nur Zeilen bearbeitet, die
   mit dem angegebenen Text beginnen. Für „die ersten 3 Zeichen“ einfach diese
   3 Zeichen als Präfix eingeben.
-- **Optionaler Zeilenbereich:** z. B. nur Zeile 1 bis 3 („die ersten 3 Zeilen“).
+- **Optionaler Zeilenbereich:** Kontrollkästchen **Zeilenbereich** anhaken und
+  z. B. 1 bis 3 eingeben („die ersten 3 Zeilen“). Ohne Haken werden alle Zeilen
+  bearbeitet; die Felder sind dann ausgegraut.
 - **Optional nur Zeilen in der aktuellen Auswahl.**
 - **Spaltenbereich:** 1-basiert und inklusive.
   - Feste Positionen: Endspalte leer = bis zum Zeilenende.
@@ -66,7 +68,8 @@ eine 64-Bit-DLL wird von 32-Bit-Notepad++ nicht geladen (und umgekehrt).
 | **Zeilenanfang (Präfix)** | Nur Zeilen, die mit diesem Text beginnen. Leer = alle Zeilen. |
 | **Groß-/Kleinschreibung beachten** | Vergleich des Präfixes case-sensitiv oder nicht. |
 | **Nur Zeilen in Auswahl** | Nur Zeilen, die die aktuelle Textauswahl berühren. |
-| **Zeilen von / bis** | Optionaler 1-basierter Zeilenbereich. Leer = keine Begrenzung. |
+| **Zeilenbereich** | Kontrollkästchen: schaltet die Felder **von/bis** frei. Ohne Haken werden alle Zeilen bearbeitet. |
+| **von / bis** | Optionaler 1-basierter **Dateizeilen**-Bereich (nicht Trefferzahl). Leer = unbegrenzt. |
 | **Feste Zeichenpositionen** | Spalten werden als Zeichenpositionen in der Zeile gezählt. |
 | **Trennzeichen-getrennte Felder** | Spalten werden als Felder zwischen Trennzeichen gezählt (CSV/TSV). |
 | **Trennzeichen** | Ein Zeichen, z. B. `;`, `,` oder `\|`. `\t` steht für Tab. |
@@ -177,6 +180,10 @@ verändert und sind die Einstellungen identisch, bewirkt ein weiterer Klick auf
 kürzerer Ersatztext bei erneutem Ausführen keine Zeichen hinter dem
 Spaltenbereich löschen.
 
+**Zeilenbereich:** Die Felder **von/bis** zählen **Dateizeilen**, nicht die Zahl
+der Treffer. Beispiel: „von 1 bis 3“ bearbeitet nur die ersten drei Zeilen der
+Datei; eine vierte Zeile bleibt unverändert, auch wenn ihr Präfix passt.
+
 ### Feste Zeichenpositionen
 
 - Spalten sind **1-basiert und inklusive**: „Von 4 bis 6“ ersetzt genau drei
@@ -216,8 +223,8 @@ Spaltenbereich löschen.
 
 In diesem Projekt liegen bereits gebaute Pakete:
 
-- `dist/ColumnReplace-1.2.1-x64.zip` – 64-Bit
-- `dist/ColumnReplace-1.2.1-x86.zip` – 32-Bit
+- `dist/ColumnReplace-1.3.0-x64.zip` – 64-Bit
+- `dist/ColumnReplace-1.3.0-x86.zip` – 32-Bit
 
 Jedes ZIP enthält den Ordner `ColumnReplace` mit der DLL, dieser wird direkt
 nach `<Notepad++>\plugins\` kopiert.

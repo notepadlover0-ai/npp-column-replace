@@ -17,6 +17,7 @@ enum class Text {
     LabelPrefix,
     CheckCase,
     CheckSelection,
+    CheckLineRange,
     LabelLineFrom,
     LabelLineTo,
     HintAllLines,

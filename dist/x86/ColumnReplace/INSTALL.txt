@@ -27,7 +27,8 @@ Bedienung:
     sind.
   - Zeilenanfang (Praefix): nur Zeilen mit diesem Anfang bearbeiten.
     Fuer die ersten 3 Zeichen einfach diese 3 Zeichen eingeben.
-  - Zeilen von/bis: optional, z. B. 1 bis 3 fuer die ersten 3 Zeilen.
+  - Zeilenbereich: Haken setzen, dann von/bis, z. B. 1 bis 3 fuer die ersten
+    3 Dateizeilen. Ohne Haken werden alle Zeilen bearbeitet.
   - Modus "Feste Zeichenpositionen": Spalten sind Zeichenpositionen.
       Von Spalte / Bis Spalte: 1-basiert, inklusive;
       Bis leer = bis zum Zeilenende.

@@ -19,6 +19,7 @@ struct Settings {
     bool caseSensitive = true;
     bool onlySelection = false;
     bool delimitedMode = false;
+    bool useLineRange = false;
     std::wstring delimiter = L";";
     std::wstring firstLine;
     std::wstring lastLine;
@@ -473,29 +474,33 @@ bool readInput(HWND dialog, HWND scintilla, InputValues& values,
         values.options.endColumn = static_cast<long long>(end);
     }
 
-    if (!parseOptionalNumber(dialog, IDC_FIRSTLINE,
-                             columnreplace::tr(
-                                 columnreplace::Text::LabelLineFromShort),
-                             values.firstLine, values.hasFirstLine, error) ||
-        !parseOptionalNumber(dialog, IDC_LASTLINE,
-                             columnreplace::tr(
-                                 columnreplace::Text::LabelLineToShort),
-                             values.lastLine, values.hasLastLine, error)) {
-        return false;
-    }
+    const bool lineRangeEnabled =
+        IsDlgButtonChecked(dialog, IDC_USERANGE) == BST_CHECKED;
+    if (lineRangeEnabled) {
+        if (!parseOptionalNumber(dialog, IDC_FIRSTLINE,
+                                 columnreplace::tr(
+                                     columnreplace::Text::LabelLineFromShort),
+                                 values.firstLine, values.hasFirstLine, error) ||
+            !parseOptionalNumber(dialog, IDC_LASTLINE,
+                                 columnreplace::tr(
+                                     columnreplace::Text::LabelLineToShort),
+                                 values.lastLine, values.hasLastLine, error)) {
+            return false;
+        }
 
-    if (values.hasFirstLine && values.firstLine == 0) {
-        error = columnreplace::tr(columnreplace::Text::ErrorLineFromMin);
-        return false;
-    }
-    if (values.hasLastLine && values.lastLine == 0) {
-        error = columnreplace::tr(columnreplace::Text::ErrorLineToMin);
-        return false;
-    }
-    if (values.hasFirstLine && values.hasLastLine &&
-        values.firstLine > values.lastLine) {
-        error = columnreplace::tr(columnreplace::Text::ErrorLineRange);
-        return false;
+        if (values.hasFirstLine && values.firstLine == 0) {
+            error = columnreplace::tr(columnreplace::Text::ErrorLineFromMin);
+            return false;
+        }
+        if (values.hasLastLine && values.lastLine == 0) {
+            error = columnreplace::tr(columnreplace::Text::ErrorLineToMin);
+            return false;
+        }
+        if (values.hasFirstLine && values.hasLastLine &&
+            values.firstLine > values.lastLine) {
+            error = columnreplace::tr(columnreplace::Text::ErrorLineRange);
+            return false;
+        }
     }
 
     values.options.firstLine =
@@ -531,6 +536,19 @@ void updateModeControls(HWND dialog) {
                                   : columnreplace::Text::HintEndFixed));
 }
 
+void updateLineRangeControls(HWND dialog) {
+    const bool enabled =
+        IsDlgButtonChecked(dialog, IDC_USERANGE) == BST_CHECKED;
+
+    EnableWindow(GetDlgItem(dialog, IDC_FIRSTLINE), enabled ? TRUE : FALSE);
+    EnableWindow(GetDlgItem(dialog, IDC_LASTLINE), enabled ? TRUE : FALSE);
+    EnableWindow(GetDlgItem(dialog, IDC_LABEL_LINEFROM),
+                 enabled ? TRUE : FALSE);
+    EnableWindow(GetDlgItem(dialog, IDC_LABEL_LINETO), enabled ? TRUE : FALSE);
+    EnableWindow(GetDlgItem(dialog, IDC_HINT_ALLLINES),
+                 enabled ? TRUE : FALSE);
+}
+
 void applyLanguage(HWND dialog) {
     SetWindowTextW(dialog,
                    columnreplace::tr(columnreplace::Text::DialogCaption));
@@ -543,6 +561,8 @@ void applyLanguage(HWND dialog) {
                     columnreplace::tr(columnreplace::Text::CheckCase));
     SetDlgItemTextW(dialog, IDC_ONLYSEL,
                     columnreplace::tr(columnreplace::Text::CheckSelection));
+    SetDlgItemTextW(dialog, IDC_USERANGE,
+                    columnreplace::tr(columnreplace::Text::CheckLineRange));
     SetDlgItemTextW(dialog, IDC_LABEL_LINEFROM,
                     columnreplace::tr(columnreplace::Text::LabelLineFrom));
     SetDlgItemTextW(dialog, IDC_LABEL_LINETO,
@@ -582,6 +602,7 @@ void applyLanguage(HWND dialog) {
                     columnreplace::tr(columnreplace::Text::LabelLanguage));
 
     updateModeControls(dialog);
+    updateLineRangeControls(dialog);
 }
 
 void populateLanguageCombo(HWND dialog) {
@@ -614,6 +635,8 @@ void saveSettings(HWND dialog) {
         IsDlgButtonChecked(dialog, IDC_CASE) == BST_CHECKED;
     g_settings.onlySelection =
         IsDlgButtonChecked(dialog, IDC_ONLYSEL) == BST_CHECKED;
+    g_settings.useLineRange =
+        IsDlgButtonChecked(dialog, IDC_USERANGE) == BST_CHECKED;
     g_settings.delimitedMode =
         IsDlgButtonChecked(dialog, IDC_MODE_DELIMITED) == BST_CHECKED;
     g_settings.delimiter = getWindowText(GetDlgItem(dialog, IDC_DELIMITER));
@@ -630,6 +653,8 @@ void loadSettings(HWND dialog) {
                    g_settings.caseSensitive ? BST_CHECKED : BST_UNCHECKED);
     CheckDlgButton(dialog, IDC_ONLYSEL,
                    g_settings.onlySelection ? BST_CHECKED : BST_UNCHECKED);
+    CheckDlgButton(dialog, IDC_USERANGE,
+                   g_settings.useLineRange ? BST_CHECKED : BST_UNCHECKED);
     CheckDlgButton(dialog, IDC_MODE_FIXED,
                    g_settings.delimitedMode ? BST_UNCHECKED : BST_CHECKED);
     CheckDlgButton(dialog, IDC_MODE_DELIMITED,
@@ -641,6 +666,7 @@ void loadSettings(HWND dialog) {
     SetDlgItemTextW(dialog, IDC_ENDCOL, g_settings.endColumn.c_str());
     SetDlgItemTextW(dialog, IDC_REPLACEMENT, g_settings.replacement.c_str());
     updateModeControls(dialog);
+    updateLineRangeControls(dialog);
 }
 
 void runPreview(HWND dialog) {
@@ -789,6 +815,16 @@ INT_PTR CALLBACK dialogProc(HWND dialog, UINT message, WPARAM wParam,
 
         case IDC_REPLACE:
             runReplace(dialog);
+            return TRUE;
+
+        case IDC_USERANGE:
+            if (IsDlgButtonChecked(dialog, IDC_USERANGE) == BST_CHECKED) {
+                SetFocus(GetDlgItem(dialog, IDC_FIRSTLINE));
+            } else {
+                SetDlgItemTextW(dialog, IDC_FIRSTLINE, L"");
+                SetDlgItemTextW(dialog, IDC_LASTLINE, L"");
+            }
+            updateLineRangeControls(dialog);
             return TRUE;
 
         case IDC_MODE_FIXED:
