@@ -406,6 +406,52 @@ int main() {
         CHECK_EQ(applyEdits(text, analysis), "XX\nXX\nXX\n");
     }
 
+    // ANSI documents (BytePerCharacter): every byte is one column, so a
+    // two-byte UTF-8 umlaut occupies two columns while it is one character in
+    // UTF-8 mode.
+    {
+        Options options;
+        options.startColumn = 2;
+        options.endColumn = 3;
+        options.replacement = "XY";
+
+        const std::string text = "a\xC3\xA4z\n";
+        const Analysis ansi =
+            analyze(text, options, 20, TextEncoding::BytePerCharacter);
+        CHECK_EQ(applyEdits(text, ansi), "aXYz\n");
+
+        const Analysis utf8 = analyze(text, options);
+        CHECK_EQ(applyEdits(text, utf8), "aXY\n");
+    }
+
+    // ANSI mode pads shorter lines in bytes as well, so the replacement starts
+    // at the same column on every line.
+    {
+        Options options;
+        options.startColumn = 4;
+        options.replacement = "X";
+
+        // "a" plus the single CP1252 byte 0xE4 ("ä") = two columns.
+        const std::string text = "a\xE4\n";
+        const Analysis analysis =
+            analyze(text, options, 20, TextEncoding::BytePerCharacter);
+        CHECK_EQ(applyEdits(text, analysis), "a\xE4 X\n");
+    }
+
+    // ANSI prefix comparison works on code page bytes.
+    {
+        Options options;
+        options.prefix = std::string("\xFC", 1); // CP1252 "ü"
+        options.startColumn = 2;
+        options.endColumn = 2;
+        options.replacement = "X";
+
+        const std::string text = "\xFC" "ber\nabc\n";
+        const Analysis analysis =
+            analyze(text, options, 20, TextEncoding::BytePerCharacter);
+        CHECK_EQ(applyEdits(text, analysis), "\xFC" "Xer\nabc\n");
+    }
+
     if (failures == 0) {
         std::cout << "All tests passed.\n";
         return 0;

@@ -33,17 +33,20 @@ Felder sind.
 - **Ein einziger Undo-Schritt:** Nach dem Ersetzen mit `Strg+Z` komplett
   rückgängig machen.
 - Zeilenenden (CRLF/LF) und alle nicht betroffenen Zeichen bleiben unverändert.
-- Feste Spalten zählen UTF-8-Zeichen, nicht Bytes. Umlaute und die meisten
-  Emojis zählen als ein Zeichen; ein Tab zählt als ein Zeichen.
+- Feste Spalten zählen Zeichen, nicht Bytes: In UTF-8-Dateien zählen Umlaute
+  und die meisten Emojis als ein Zeichen; in ANSI-Dateien entspricht bei
+  einbytebasierten Codepages eine Spalte genau einem Zeichen (Byte). Ein Tab
+  zählt als ein Zeichen.
 - CSV-Ersetzungen werden bei Bedarf automatisch in Anführungszeichen gesetzt
   und Anführungszeichen im Wert verdoppelt.
 - **Deutsche und englische Oberfläche:** Die Sprache wird automatisch aus der
   Notepad++-Sprache übernommen und kann im Dialog unter **Sprache/Language**
   umgeschaltet werden.
-- **ANSI- und UTF-8-Dateien:** Beide werden unterstützt. Notepad++ hält auch
-  ANSI-Dateien intern als UTF-8; gespeichert wird weiterhin im ursprünglichen
-  Format. Enthält der Ersatztext Zeichen, die in der ANSI-Codepage nicht
-  vorkommen, erscheint vor dem Ersetzen eine Warnung.
+- **ANSI- und UTF-8-Dateien:** Beide werden unterstützt. ANSI-Dateien werden
+  in ihrer eigenen Codepage bearbeitet, sodass Umlaute und andere Zeichen auch
+  an der ersetzten Stelle korrekt dargestellt werden. Gespeichert wird
+  weiterhin im ursprünglichen Format. Enthält der Ersatztext Zeichen, die in
+  der ANSI-Codepage nicht vorkommen, erscheint vor dem Ersetzen eine Warnung.
 
 ## Installation
 
@@ -161,18 +164,21 @@ Ergebnis:       ABC;"999;Sonderfall";Hans
 ### ANSI- und UTF-8-Dateien
 
 - Das Plugin funktioniert mit **ANSI-, UTF-8- und UTF-8-BOM-Dateien**.
-  Notepad++ führt ANSI-Dateien intern als UTF-8; das Plugin bearbeitet diesen
-  UTF-8-Puffer, und Notepad++ speichert anschließend wieder in der
-  ursprünglichen Kodierung.
-- Spalten zählen **Zeichen**, nicht Bytes. Bei einbytebasierten ANSI-Codepages
-  (z. B. Windows-1252) entspricht eine Spalte genau einem Byte, bei
-  Mehrbyte-Codepages (z. B. Shift-JIS) einem Zeichen.
+- Notepad++ hält ANSI-Dateien als **rohe Bytes der ANSI-Codepage** im
+  Editorpuffer. Das Plugin liest und schreibt diese Bytes direkt und wandelt
+  Präfix und Ersatztext vorher in die Codepage der Datei um. Dadurch bleiben
+  Umlaute und andere Zeichen auch an der ersetzten Stelle korrekt kodiert.
+- In ANSI-Dateien zählt eine Spalte **ein Byte**. Bei den einbytebasierten
+  ANSI-Codepages (z. B. Windows-1252) ist das genau ein Zeichen. Bei
+  Mehrbyte-Codepages (z. B. Shift-JIS 932, GBK 936, Big5 950) können Zeichen
+  mehrere Bytes belegen; dort zählt das Plugin Bytes, nicht Zeichen. Für
+  solche Dateien ist der Modus **Trennzeichen-getrennte Felder** oder das
+  Speichern als UTF-8 besser geeignet.
 - Die Statuszeile zeigt die erkannte Kodierung an, z. B.
   `Bereit. Datei-Kodierung: ANSI (Windows-1252).`
 - Enthält der Ersatztext Zeichen, die in der ANSI-Codepage nicht darstellbar
   sind (etwa Emojis oder nicht unterstützte Buchstaben), warnt das Plugin vor
-  dem Ersetzen. Beim Speichern würde Notepad++ diese Zeichen sonst durch `?`
-  ersetzen.
+  dem Ersetzen. Nach Bestätigung werden diese Zeichen als `?` eingefügt.
 
 ## Verhalten im Detail
 
@@ -230,8 +236,8 @@ Datei; eine vierte Zeile bleibt unverändert, auch wenn ihr Präfix passt.
 
 In diesem Projekt liegen bereits gebaute Pakete:
 
-- `dist/ColumnReplace-1.3.1-x64.zip` – 64-Bit
-- `dist/ColumnReplace-1.3.1-x86.zip` – 32-Bit
+- `dist/ColumnReplace-1.3.2-x64.zip` – 64-Bit
+- `dist/ColumnReplace-1.3.2-x86.zip` – 32-Bit
 
 Jedes ZIP enthält den Ordner `ColumnReplace` mit der DLL, dieser wird direkt
 nach `<Notepad++>\plugins\` kopiert.

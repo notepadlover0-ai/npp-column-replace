@@ -119,26 +119,94 @@ std::wstring utf8ToWide(const std::string& text) {
     return result;
 }
 
-std::wstring trimForDisplay(const std::string& utf8,
+// Returns the code page Notepad++ uses to interpret the raw bytes of the
+// document. UTF-8 documents return CP_UTF8; ANSI documents return their ANSI
+// code page (0 from Scintilla means the system ANSI code page).
+int documentCodePage(HWND scintilla) {
+    const int codePage = static_cast<int>(
+        SendMessageW(scintilla, SCI_GETCODEPAGE, 0, 0));
+    if (codePage == SC_CP_UTF8) {
+        return CP_UTF8;
+    }
+    if (codePage <= 0) {
+        return static_cast<int>(GetACP());
+    }
+    return codePage;
+}
+
+bool isUtf8CodePage(int codePage) { return codePage == CP_UTF8; }
+
+// Converts text from the dialog to the byte representation stored in the
+// document. UTF-8 documents keep UTF-8; ANSI documents get bytes of their code
+// page. Characters the code page cannot represent become '?'.
+std::string wideToDocumentEncoding(const std::wstring& text, int codePage) {
+    if (text.empty()) {
+        return std::string();
+    }
+    if (isUtf8CodePage(codePage)) {
+        return wideToUtf8(text);
+    }
+    const UINT cp = codePage <= 0 ? GetACP() : static_cast<UINT>(codePage);
+    const int size = WideCharToMultiByte(
+        cp, WC_NO_BEST_FIT_CHARS, text.c_str(), static_cast<int>(text.size()),
+        nullptr, 0, "?", nullptr);
+    if (size <= 0) {
+        return std::string();
+    }
+    std::string result(static_cast<std::size_t>(size), '\0');
+    WideCharToMultiByte(cp, WC_NO_BEST_FIT_CHARS, text.c_str(),
+                        static_cast<int>(text.size()), result.data(), size, "?",
+                        nullptr);
+    return result;
+}
+
+// Converts raw document bytes back to text for display in the dialog.
+std::wstring documentEncodingToWide(const std::string& bytes, int codePage) {
+    if (bytes.empty()) {
+        return std::wstring();
+    }
+    if (isUtf8CodePage(codePage)) {
+        return utf8ToWide(bytes);
+    }
+    const UINT cp = codePage <= 0 ? GetACP() : static_cast<UINT>(codePage);
+    const int size = MultiByteToWideChar(
+        cp, 0, bytes.c_str(), static_cast<int>(bytes.size()), nullptr, 0);
+    if (size <= 0) {
+        // Last resort: show every byte as a Latin-1 character instead of
+        // dropping the preview line entirely.
+        std::wstring fallback;
+        fallback.reserve(bytes.size());
+        for (const unsigned char byte : bytes) {
+            fallback.push_back(static_cast<wchar_t>(byte));
+        }
+        return fallback;
+    }
+    std::wstring result(static_cast<std::size_t>(size), L'\0');
+    MultiByteToWideChar(cp, 0, bytes.c_str(), static_cast<int>(bytes.size()),
+                        result.data(), size);
+    return result;
+}
+
+std::wstring trimForDisplay(const std::string& text, int codePage,
                             std::size_t maxCharacters = 100) {
-    std::wstring text = utf8ToWide(utf8);
-    for (wchar_t& ch : text) {
+    std::wstring wide = documentEncodingToWide(text, codePage);
+    for (wchar_t& ch : wide) {
         if (ch == L'\t') {
             ch = L' ';
         }
     }
-    if (text.size() > maxCharacters) {
-        text.resize(maxCharacters);
+    if (wide.size() > maxCharacters) {
+        wide.resize(maxCharacters);
         // Do not cut a UTF-16 surrogate pair in half.
-        if (!text.empty()) {
-            const wchar_t last = text.back();
+        if (!wide.empty()) {
+            const wchar_t last = wide.back();
             if (last >= 0xD800 && last <= 0xDBFF) {
-                text.pop_back();
+                wide.pop_back();
             }
         }
-        text += L"...";
+        wide += L"...";
     }
-    return text;
+    return wide;
 }
 
 std::wstring codePageDisplayName(int codePage) {
@@ -172,28 +240,33 @@ std::wstring codePageDisplayName(int codePage) {
     }
 }
 
-// Notepad++ stores ANSI documents internally as UTF-8 as well, so the plugin
-// always edits the UTF-8 view. This reports only which encoding is used when
-// the document is saved.
+// Notepad++ keeps ANSI documents as raw code page bytes in the Scintilla
+// buffer. This reports the encoding so the dialog and the analysis can treat
+// the bytes correctly.
 std::wstring documentEncodingName(HWND scintilla) {
-    const int codePage = static_cast<int>(
-        SendMessageW(scintilla, SCI_GETCODEPAGE, 0, 0));
-    if (codePage == SC_CP_UTF8) {
+    const int codePage = documentCodePage(scintilla);
+    if (isUtf8CodePage(codePage)) {
         return L"UTF-8";
     }
     return L"ANSI (" + codePageDisplayName(codePage) + L")";
 }
 
 bool isRepresentableInCodePage(const std::wstring& text, int codePage) {
-    const UINT cp = codePage == 0 ? GetACP() : static_cast<UINT>(codePage);
-    if (text.empty() || cp == CP_UTF8) {
+    if (text.empty() || isUtf8CodePage(codePage)) {
         return true;
     }
+    const UINT cp = codePage <= 0 ? GetACP() : static_cast<UINT>(codePage);
     BOOL usedDefault = FALSE;
     const int length = WideCharToMultiByte(
         cp, WC_NO_BEST_FIT_CHARS, text.c_str(),
         static_cast<int>(text.size()), nullptr, 0, nullptr, &usedDefault);
     return length > 0 && usedDefault == FALSE;
+}
+
+// True when the replacement can be stored without being changed by the ANSI
+// code page. Used by Preview and Replace alike.
+bool replacementFitsDocument(const std::wstring& replacement, int codePage) {
+    return isRepresentableInCodePage(replacement, codePage);
 }
 
 class WaitCursor {
@@ -364,10 +437,12 @@ void updateHorizontalExtent(HWND list) {
                  static_cast<WPARAM>(maximum + 24), 0);
 }
 
-std::wstring formatPreview(const columnreplace::Preview& preview) {
+std::wstring formatPreview(const columnreplace::Preview& preview,
+                           int codePage) {
     return columnreplace::formatPreviewLine(
         static_cast<long long>(preview.lineNumber),
-        trimForDisplay(preview.before), trimForDisplay(preview.after));
+        trimForDisplay(preview.before, codePage),
+        trimForDisplay(preview.after, codePage));
 }
 
 struct InputValues {
@@ -401,10 +476,11 @@ bool parseOptionalNumber(HWND dialog, int controlId, const wchar_t* label,
 
 bool readInput(HWND dialog, HWND scintilla, InputValues& values,
                std::wstring& error) {
-    values.options.prefix =
-        wideToUtf8(getWindowText(GetDlgItem(dialog, IDC_PREFIX)));
-    values.options.replacement =
-        wideToUtf8(getWindowText(GetDlgItem(dialog, IDC_REPLACEMENT)));
+    const int codePage = documentCodePage(scintilla);
+    values.options.prefix = wideToDocumentEncoding(
+        getWindowText(GetDlgItem(dialog, IDC_PREFIX)), codePage);
+    values.options.replacement = wideToDocumentEncoding(
+        getWindowText(GetDlgItem(dialog, IDC_REPLACEMENT)), codePage);
     values.options.caseSensitive =
         IsDlgButtonChecked(dialog, IDC_CASE) == BST_CHECKED;
     values.options.onlySelection =
@@ -691,8 +767,12 @@ void runPreview(HWND dialog) {
 
     WaitCursor cursor;
     const std::string document = readDocument(scintilla);
+    const int codePage = documentCodePage(scintilla);
+    const columnreplace::TextEncoding encoding =
+        isUtf8CodePage(codePage) ? columnreplace::TextEncoding::Utf8
+                                 : columnreplace::TextEncoding::BytePerCharacter;
     const columnreplace::Analysis analysis =
-        columnreplace::analyze(document, values.options, 20);
+        columnreplace::analyze(document, values.options, 20, encoding);
 
     HWND list = GetDlgItem(dialog, IDC_PREVIEWLIST);
     if (analysis.previews.empty()) {
@@ -700,7 +780,7 @@ void runPreview(HWND dialog) {
                                  columnreplace::Text::StatusNoChangesList));
     } else {
         for (const auto& preview : analysis.previews) {
-            addPreviewLine(list, formatPreview(preview));
+            addPreviewLine(list, formatPreview(preview, codePage));
         }
     }
     updateHorizontalExtent(list);
@@ -748,13 +828,12 @@ void runReplace(HWND dialog) {
         return;
     }
 
-    // ANSI documents are edited as UTF-8 internally. Characters that do not
-    // exist in the document code page would be turned into '?' when saving,
-    // so ask before doing that.
-    const int codePage = static_cast<int>(
-        SendMessageW(scintilla, SCI_GETCODEPAGE, 0, 0));
-    if (codePage != SC_CP_UTF8 &&
-        !isRepresentableInCodePage(
+    // ANSI documents store raw code page bytes, so characters that are not
+    // part of the document code page are inserted as '?'. Ask before doing
+    // that.
+    const int codePage = documentCodePage(scintilla);
+    if (!isUtf8CodePage(codePage) &&
+        !replacementFitsDocument(
             getWindowText(GetDlgItem(dialog, IDC_REPLACEMENT)), codePage)) {
         const std::wstring warning =
             columnreplace::formatAnsiWarning(codePageDisplayName(codePage));
@@ -767,8 +846,11 @@ void runReplace(HWND dialog) {
     }
 
     WaitCursor cursor;
+    const columnreplace::TextEncoding encoding =
+        isUtf8CodePage(codePage) ? columnreplace::TextEncoding::Utf8
+                                 : columnreplace::TextEncoding::BytePerCharacter;
     const columnreplace::Analysis analysis =
-        columnreplace::analyze(document, values.options, 0);
+        columnreplace::analyze(document, values.options, 0, encoding);
 
     if (analysis.edits.empty()) {
         clearPreview(dialog);

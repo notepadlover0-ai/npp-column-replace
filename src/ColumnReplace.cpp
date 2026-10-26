@@ -62,6 +62,23 @@ void decodeUtf8(const std::string& s, std::vector<unsigned int>& cps,
     offsets.push_back(s.size());
 }
 
+// ANSI documents are stored as raw code page bytes. For the single-byte code
+// pages Notepad++ uses for ANSI mode, one byte is exactly one character, so
+// no conversion is needed for counting columns or matching the prefix.
+void decodeBytes(const std::string& s, std::vector<unsigned int>& cps,
+                 std::vector<std::size_t>& offsets) {
+    cps.clear();
+    offsets.clear();
+    cps.reserve(s.size());
+    offsets.reserve(s.size() + 1);
+
+    for (std::size_t i = 0; i < s.size(); ++i) {
+        offsets.push_back(i);
+        cps.push_back(static_cast<unsigned char>(s[i]));
+    }
+    offsets.push_back(s.size());
+}
+
 unsigned int foldCodePoint(unsigned int cp) {
     if (cp < 0x80) {
         if (cp >= 'A' && cp <= 'Z') {
@@ -279,12 +296,16 @@ bool replaceDelimited(const std::string& content, const Options& options,
 } // namespace
 
 Analysis analyze(const std::string& text, const Options& options,
-                 std::size_t previewLimit) {
+                 std::size_t previewLimit, TextEncoding encoding) {
     Analysis result;
 
     std::vector<unsigned int> prefixCps;
     std::vector<std::size_t> prefixOffsets;
-    decodeUtf8(options.prefix, prefixCps, prefixOffsets);
+    if (encoding == TextEncoding::BytePerCharacter) {
+        decodeBytes(options.prefix, prefixCps, prefixOffsets);
+    } else {
+        decodeUtf8(options.prefix, prefixCps, prefixOffsets);
+    }
 
     std::vector<unsigned int> lineCps;
     std::vector<std::size_t> lineOffsets;
@@ -326,7 +347,11 @@ Analysis analyze(const std::string& text, const Options& options,
 
         if (inLineRange && inSelection) {
             const std::string content = text.substr(pos, contentEnd - pos);
-            decodeUtf8(content, lineCps, lineOffsets);
+            if (encoding == TextEncoding::BytePerCharacter) {
+                decodeBytes(content, lineCps, lineOffsets);
+            } else {
+                decodeUtf8(content, lineCps, lineOffsets);
+            }
 
             if (startsWith(lineCps, prefixCps, options.caseSensitive)) {
                 ++result.matchedLines;

@@ -11,6 +11,14 @@ enum class ColumnMode {
     Delimited   // startColumn/endColumn are 1-based field numbers
 };
 
+// How the document bytes are interpreted. UTF-8 counts code points, while
+// BytePerCharacter treats every byte as one character (used for ANSI
+// documents, whose Scintilla buffer contains raw code page bytes).
+enum class TextEncoding {
+    Utf8,
+    BytePerCharacter
+};
+
 // 1-based column numbers, end column inclusive.
 // FixedWidth: endColumn == 0 means "to the end of the line".
 // Delimited:  endColumn == 0 means "only the start field".
@@ -49,9 +57,11 @@ struct Analysis {
     std::size_t changedLines = 0;
 };
 
-// Analyzes the UTF-8 document without modifying it.
+// Analyzes the document without modifying it. Pass BytePerCharacter for
+// single-byte ANSI documents.
 Analysis analyze(const std::string& text, const Options& options,
-                 std::size_t previewLimit = 20);
+                 std::size_t previewLimit = 20,
+                 TextEncoding encoding = TextEncoding::Utf8);
 
 // Applies the edits to a copy of the text (for tests / non-Scintilla use).
 std::string applyEdits(const std::string& text, const Analysis& analysis);

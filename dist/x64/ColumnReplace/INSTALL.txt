@@ -21,10 +21,13 @@ Installation:
 Bedienung:
   - Sprache: Deutsch oder Englisch, automatisch aus Notepad++ uebernommen;
     im Dialog unter "Sprache/Language" umschaltbar.
-  - ANSI- und UTF-8-Dateien werden unterstuetzt. Notepad++ speichert die
-    Datei weiterhin in ihrer urspruenglichen Kodierung. Bei ANSI warnt das
-    Plugin, wenn der Ersatztext Zeichen enthaelt, die dort nicht darstellbar
-    sind.
+  - ANSI- und UTF-8-Dateien werden unterstuetzt. ANSI-Dateien werden in
+    ihrer eigenen Codepage bearbeitet, damit Umlaute auch an der ersetzten
+    Stelle korrekt bleiben; Notepad++ speichert die Datei weiterhin in ihrer
+    urspruenglichen Kodierung. Bei ANSI warnt das Plugin, wenn der Ersatztext
+    Zeichen enthaelt, die dort nicht darstellbar sind (sie werden zu "?").
+    In ANSI-Dateien zaehlt eine Spalte ein Byte; bei einbytebasierten
+    Codepages wie Windows-1252 entspricht das genau einem Zeichen.
   - Zeilenanfang (Praefix): nur Zeilen mit diesem Anfang bearbeiten.
     Fuer die ersten 3 Zeichen einfach diese 3 Zeichen eingeben.
   - Zeilenbereich: Haken setzen, dann von/bis, z. B. 1 bis 3 fuer die ersten
